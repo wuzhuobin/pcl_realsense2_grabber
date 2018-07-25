@@ -6,7 +6,10 @@
 // pcl
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
-// me j
+namespace pcl {
+	class Grabber;
+}
+// me
 namespace Ui {
 class MainWindow;
 }
@@ -27,7 +30,7 @@ private:
     Ui::MainWindow *ui;
 	CloudType::Ptr capturedCloud;
 	CloudType::Ptr loadedCloud;
-	//CloudType::Ptr alignedCloud;
+	pcl::Grabber *grabber;
 	pcl::PointCloud<pcl::PointNormal>::Ptr alignedCloud;
 };
 

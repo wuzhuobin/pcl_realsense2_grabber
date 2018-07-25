@@ -10,24 +10,24 @@
 #include <pcl/io/vtk_lib_io.h>
 // vtk
 #include <vtkPolyDataReader.h>
+#include <vtkPLYWriter.h>
+// qt 
+#include <QFileDialog>
 const std::string CAPTURE_CLOUD("capture_cloud");
 const std::string LOADED_CLOUD("loaded_cloud");
 const std::string ALIGNED_CLOUD("aligned_cloud");
 //pcl::io::OpenNI2Grabber grabber;
-pcl::io::RealSense2Grabber grabber;
+//pcl::io::RealSense2Grabber grabber;
 MainWindow::MainWindow(QWidget *parent)
 	: QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow), 
+	grabber(new pcl::io::RealSense2Grabber("", pcl::io::RealSense2Grabber::Mode(
+		pcl::io::RealSense2Grabber::Mode::rs2_rs400_resolution::H1280X720,
+		pcl::io::RealSense2Grabber::Mode::rs2_rs400_frame_rate::FPS30Hz,
+		pcl::io::RealSense2Grabber::Mode::rs2_rs400_visual_preset::RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY)))
 {
-	grabber.start();
     this->ui->setupUi(this);
-	this->ui->grabber_viewer->set_x_max(9999);
-	this->ui->grabber_viewer->set_y_max(9999);
-	this->ui->grabber_viewer->set_z_max(9999);
-	this->ui->grabber_viewer->set_x_min(-9999);
-	this->ui->grabber_viewer->set_y_min(-9999);
-	this->ui->grabber_viewer->set_z_min(-9999);
-	this->ui->grabber_viewer->set_grabber(&grabber);
+	this->grabber->start();
 	connect(this->ui->doubleSpinBoxMinX, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
 		this->ui->grabber_viewer, &pcl_grabber_viewer::set_x_min);
 	connect(this->ui->doubleSpinBoxMinY, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
@@ -40,24 +40,45 @@ MainWindow::MainWindow(QWidget *parent)
 		this->ui->grabber_viewer, &pcl_grabber_viewer::set_y_max);
 	connect(this->ui->doubleSpinBoxMaxZ, static_cast<void(QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged),
 		this->ui->grabber_viewer, &pcl_grabber_viewer::set_z_max);
-	//this->ui->doubleSpinBoxMinX->setValue(0);
-	//this->ui->doubleSpinBoxMaxX->setValue(150);
-	//this->ui->doubleSpinBoxMinY->setValue(-100);
-	//this->ui->doubleSpinBoxMaxY->setValue(100);
-	//this->ui->doubleSpinBoxMinZ->setValue(800);
-	//this->ui->doubleSpinBoxMaxZ->setValue(1000);
+	this->ui->grabber_viewer->set_x_max(9999);
+	this->ui->grabber_viewer->set_y_max(9999);
+	this->ui->grabber_viewer->set_z_max(9999);
+	this->ui->grabber_viewer->set_x_min(-9999);
+	this->ui->grabber_viewer->set_y_min(-9999);
+	this->ui->grabber_viewer->set_z_min(-9999);
+	this->ui->doubleSpinBoxMinX->setValue(-500);
+	this->ui->doubleSpinBoxMaxX->setValue(500);
+	this->ui->doubleSpinBoxMinY->setValue(-500);
+	this->ui->doubleSpinBoxMaxY->setValue(500);
+	this->ui->doubleSpinBoxMinZ->setValue(500);
+	this->ui->doubleSpinBoxMaxZ->setValue(1000);
+	this->ui->grabber_viewer->set_grabber(grabber);
+	this->ui->graphicsView->set_grabber(grabber);
 	connect(this->ui->action_Capture, &QAction::triggered,
 		this, &MainWindow::capture);
 	connect(this->ui->action_Load, &QAction::triggered,
 		this, &MainWindow::load);
 	connect(this->ui->action_Test, &QAction::triggered,
 		this, &MainWindow::test);
+	//this->ui->graphicsView->setScene(new QGraphicsScene(this));
+	//this->ui->graphicsView->scene()->addPixmap(this->image);
+	//boost::function<void(const boost::shared_ptr<pcl::io::Image>&)> f =
+	//	[this](const boost::shared_ptr<pcl::io::Image>& image) {
+	//	//const pcl::io::ImageRGB24::Ptr imageRGB = static_cast<const pcl::io::ImageRGB24::Ptr>(image);
+	//	this->cacheImage = QImage(static_cast<const unsigned char*>(image->getData()), image->getWidth(), image->getHeight (), QImage::Format_RGB888);
+	//	this->image.convertFromImage(this->cacheImage);
+	//	this->ui->graphicsView->scene()->clear();
+	//	this->ui->graphicsView->scene()->addPixmap(this->image);
+	//	this->ui->graphicsView->fitInView(this->ui->graphicsView->scene()->sceneRect());
+	//};
+	//this->grabber->registerCallback(f);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
-	grabber.stop();
+	this->grabber->stop();
+	delete this->grabber;
 }
 
 void MainWindow::load()
@@ -169,14 +190,22 @@ void MainWindow::capture()
 	pcl_grabber_viewer *viewer = this->ui->grabber_viewer;
 	pcl::visualization::PCLVisualizer *visualizer = this->ui->grabber_viewer->get_visualizer();
 	this->capturedCloud = viewer->get_cloud();
-	pcl::io::savePCDFile("C:/Users/jieji/Desktop/aaa.pcd",  *this->capturedCloud);
+	QString fileName = QFileDialog::getSaveFileName(this, tr("Save Point Cloud"), QString(), QString());
+	if (fileName.isEmpty()) {
+		return;
+	}
+	fileName = QFileInfo(fileName).filePath();
+	pcl::io::savePCDFile((fileName + ".pcd").toStdString(),  *this->capturedCloud);
 	vtkSmartPointer<vtkPolyData> polyData = vtkSmartPointer<vtkPolyData>::New();
 	pcl::io::pointCloudTovtkPolyData(*this->capturedCloud, polyData);
-	vtkSmartPointer<vtkPolyDataWriter> w = vtkSmartPointer<vtkPolyDataWriter>::New();
-	w->SetFileName("C:/Users/jieji/Desktop/aaa.vtk");
-	w->SetInputData(polyData);
-	w->Write();
-	//pcl::io::savePCDFile(, *this->capturedCloud);
+	vtkSmartPointer<vtkPolyDataWriter> polyDataWriter = vtkSmartPointer<vtkPolyDataWriter>::New();
+	polyDataWriter->SetFileName((fileName + ".vtk").toStdString().c_str());
+	polyDataWriter->SetInputData(polyData);
+	polyDataWriter->Write();
+	vtkSmartPointer<vtkPLYWriter> plyWriter = vtkSmartPointer<vtkPLYWriter>::New();
+	plyWriter->SetFileName((fileName + ".ply").toStdString().c_str());
+	plyWriter->SetInputData(polyData);
+	plyWriter->Write();
 	pcl::visualization::PointCloudColorHandlerCustom<PointType> colorHandler(this->capturedCloud, 255, 0, 0); 
 	if (!visualizer->updatePointCloud(this->capturedCloud, colorHandler, CAPTURE_CLOUD)) {
 		visualizer->addPointCloud(this->capturedCloud, colorHandler, CAPTURE_CLOUD);

@@ -14,7 +14,9 @@
 #include <pcl/io/image_rgb24.h>
 pcl::io::RealSense2Grabber::RealSense2Grabber(const std::string & device_id, const Mode& mode):
 	rs2_pipeline(new rs2::pipeline),
-	rs2_config(new rs2::config),
+	image_required(false),
+	depth_required(false),
+	ir_required(false),
 	running(false)
 {
 	this->image_signal = this->createSignal<sig_cb_realsense2_image>();
@@ -22,7 +24,6 @@ pcl::io::RealSense2Grabber::RealSense2Grabber(const std::string & device_id, con
 	this->depth_image_signal = this->createSignal<sig_cb_realsense2_depth_image>();
 	this->point_cloud_signal = this->createSignal<sig_cb_realsense2_point_cloud>();
 	this->point_cloud_rgb_signal = this->createSignal<sig_cb_realsense2_point_cloud_rgb>();
-	rs2_config->disable_all_streams();
 	switch (mode.frame_rate)
 	{
 	case Mode::rs2_rs400_frame_rate::FPS6Hz:
@@ -139,7 +140,33 @@ void pcl::io::RealSense2Grabber::start()
 {
 	this->running = true;
 	this->block_signals();
-	this->rs2_pipeline->start(*this->rs2_config);
+	rs2::config cfg;
+	cfg.disable_all_streams();
+	if (this->image_required) {
+		cfg.enable_stream(
+			rs2_stream::RS2_STREAM_COLOR, 
+			this->image_width_, 
+			this->image_height_, 
+			RS2_FORMAT_RGB8,
+			this->frame_rate);
+	}
+	if (this->depth_required) {
+		cfg.enable_stream(
+			rs2_stream::RS2_STREAM_DEPTH,
+			this->image_width_,
+			this->image_height_,
+			rs2_format::RS2_FORMAT_Z16,
+			this->frame_rate);
+	}
+	if (this->ir_required) {
+		cfg.enable_stream(
+			rs2_stream::RS2_STREAM_INFRARED,
+			this->image_width_,
+			this->image_height_,
+			rs2_format::RS2_FORMAT_Y8,
+			this->frame_rate);
+	}
+	this->rs2_pipeline->start(cfg);
 	rs2::pipeline_profile profile = this->rs2_pipeline->get_active_profile();
 	rs400::advanced_mode device = profile.get_device().as<rs400::advanced_mode>();
 	//device.get
@@ -148,8 +175,6 @@ void pcl::io::RealSense2Grabber::start()
 		device.toggle_advanced_mode(true);
 	}
 	device.load_json(this->preset_json);
-	std::cerr << device.serialize_json() << '\n';
-
 	this->process_thread.reset(new boost::thread{
 		boost::bind(&RealSense2Grabber::process, this)
 	});
@@ -161,7 +186,6 @@ void pcl::io::RealSense2Grabber::stop()
 	this->running = false;
 	this->process_thread->join();
 	try {
-		//this->rs2_pipeline-
 		this->rs2_pipeline->stop();
 	}
 	catch (rs2::wrong_api_call_sequence_error &e) {
@@ -174,10 +198,10 @@ void pcl::io::RealSense2Grabber::checkImageStreamRequired()
 {
 	if (this->num_slots<sig_cb_realsense2_image>() > 0 ||
 		this->num_slots<sig_cb_realsense2_point_cloud_rgb>() > 0) {
-		//this->rs2_config->enable_stream(RS2_STREAM_COLOR, this->image_width_, this->image_height_, this->frame_rate);
+		this->image_required = true;
 	}
 	else {
-		this->rs2_config->disable_stream(RS2_STREAM_COLOR);
+		this->image_required = false;
 	}
 }
 
@@ -186,10 +210,10 @@ void pcl::io::RealSense2Grabber::checkDepthStreamRequired()
 	if (this->num_slots<sig_cb_realsense2_depth_image>() > 0 ||
 		this->num_slots<sig_cb_realsense2_point_cloud>() > 0 ||
 		this->num_slots<sig_cb_realsense2_point_cloud_rgb>() > 0) {
-		//this->rs2_config->enable_stream(RS2_STREAM_DEPTH, this->image_width_, this->image_height_, this->frame_rate);
+		this->depth_required = true;
 	}
 	else {
-		this->rs2_config->disable_stream(RS2_STREAM_DEPTH);
+		this->image_required = false;
 	}
 }
 
@@ -198,12 +222,10 @@ void pcl::io::RealSense2Grabber::checkIRStreamRequired()
 	if (this->num_slots<sig_cb_realsense2_ir_image>() > 0 ||
 		this->num_slots<sig_cb_realsense2_point_cloud>() > 0 ||
 		this->num_slots<sig_cb_realsense2_point_cloud_rgb>() > 0) {
-		//this->rs2_config->enable_stream(RS2_STREAM_INFRARED, 0, this->image_width_, this->image_height_, RS2_FORMAT_ANY, this->frame_rate);
-		//this->rs2_config->enable_stream(RS2_STREAM_INFRARED, 1, this->image_width_, this->image_height_, RS2_FORMAT_ANY, this->frame_rate);
+		this->ir_required = true;
 	}
 	else {
-		this->rs2_config->disable_stream(RS2_STREAM_INFRARED, 0);
-		this->rs2_config->disable_stream(RS2_STREAM_INFRARED, 1);
+		this->ir_required = false;
 	}
 }
 

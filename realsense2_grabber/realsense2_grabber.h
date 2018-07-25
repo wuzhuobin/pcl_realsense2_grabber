@@ -22,7 +22,6 @@ namespace boost {
 #include <librealsense2/h/rs_option.h>
 namespace rs2 { 
 	class pipeline; 
-	class config;
 	class frameset;
 	class depth_frame;
 }
@@ -90,18 +89,17 @@ namespace pcl {
 			virtual void process();
 		private:
 			boost::shared_ptr<rs2::pipeline> rs2_pipeline;
-			boost::shared_ptr<rs2::config> rs2_config;
 			//Mode rs2_mode;
 			std::string rgb_frame_id_;
 			std::string depth_frame_id_;
 			unsigned image_width_;
 			unsigned image_height_;
 			float frame_rate;
+			bool image_required;
+			bool depth_required;
+			bool ir_required;
 			std::string preset_json;
 
-			//bool image_required_;
-			//bool depth_required_;
-			//bool ir_required_;
 			bool sync_required_;
 			boost::signals2::signal<sig_cb_realsense2_image> *image_signal;
 			boost::signals2::signal<sig_cb_realsense2_ir_image> *ir_image_signal;

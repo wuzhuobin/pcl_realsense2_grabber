@@ -27,7 +27,6 @@ public:
 	void set_grabber(pcl::Grabber *grabber);
 	pcl::visualization::PCLVisualizer* get_visualizer();
 	CloudType::Ptr get_cloud();
-	void new_cloud();
 public Q_SLOTS:
 	void update();
 	void set_x_min(double m);

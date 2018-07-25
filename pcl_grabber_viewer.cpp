@@ -17,19 +17,22 @@ pcl_grabber_viewer::pcl_grabber_viewer(QWidget * parent)
 
 pcl_grabber_viewer::~pcl_grabber_viewer()
 {
-	delete d_ptr;
+	this->set_grabber(nullptr);
+	delete this->d_ptr;
 }
 
 void pcl_grabber_viewer::set_grabber(pcl::Grabber * grabber)
 {
 	Q_D(pcl_grabber_viewer);
-	if (!d->grabber) {
+	if (d->grabber) {
 		d->cloud_connection.disconnect();
 	}
 	d->grabber = grabber;
-	boost::function<void(const CloudType::ConstPtr&)> f =
-		boost::bind(&pcl_grabber_viewerPrivate::cloud_callback, d, _1);
-	d->cloud_connection = d->grabber->registerCallback(f);
+	if (d->grabber) {
+		boost::function<void(const CloudType::ConstPtr&)> f =
+			boost::bind(&pcl_grabber_viewerPrivate::cloud_callback, d, _1);
+		d->cloud_connection = d->grabber->registerCallback(f);
+	}
 }
 
 pcl::visualization::PCLVisualizer * pcl_grabber_viewer::get_visualizer()
@@ -43,10 +46,6 @@ pcl_grabber_viewer::CloudType::Ptr pcl_grabber_viewer::get_cloud()
 	Q_D(pcl_grabber_viewer);
 	boost::shared_lock<boost::shared_mutex>(d->cloud_mutex);
 	return d->cloud;
-}
-
-void pcl_grabber_viewer::new_cloud()
-{
 }
 
 void pcl_grabber_viewer::update()

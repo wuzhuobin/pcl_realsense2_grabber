@@ -401,7 +401,7 @@ main(int argc, char** argv)
 {
 	pcl::io::RealSense2Grabber grabber("", pcl::io::RealSense2Grabber::Mode(
 		pcl::io::RealSense2Grabber::Mode::rs2_rs400_resolution::H1280X720,
-		pcl::io::RealSense2Grabber::Mode::rs2_rs400_frame_rate::FPS15Hz,
+		pcl::io::RealSense2Grabber::Mode::rs2_rs400_frame_rate::FPS30Hz,
 		pcl::io::RealSense2Grabber::Mode::rs2_rs400_visual_preset::RS2_RS400_VISUAL_PRESET_HIGH_ACCURACY
 	));
 		RealSense2Viewer<pcl::PointXYZ> openni_viewer(grabber);

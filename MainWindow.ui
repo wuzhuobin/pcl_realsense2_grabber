@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1259</width>
+    <height>511</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,6 +24,9 @@
        </sizepolicy>
       </property>
      </widget>
+    </item>
+    <item>
+     <widget class="pcl_grabber_graphic_view" name="graphicsView"/>
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout">
@@ -132,7 +135,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1259</width>
      <height>21</height>
     </rect>
    </property>
@@ -177,6 +180,11 @@
    <extends>QWidget</extends>
    <header>pcl_grabber_viewer.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>pcl_grabber_graphic_view</class>
+   <extends>QGraphicsView</extends>
+   <header>pcl_grabber_graphic_view.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
